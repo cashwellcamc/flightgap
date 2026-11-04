@@ -1,0 +1,13 @@
+jurisdiction,trigger,min_distance_km,max_distance_km,min_delay_hours,max_delay_hours,amount,currency,controllable_only,effective_from,notes
+EU261,delay,0,1500,3,,250,EUR,true,2005-02-17,Amounts from memory - verify against Regulation (EC) 261/2004 before publishing
+EU261,delay,1500,3500,3,,400,EUR,true,2005-02-17,Also applies to intra-EU flights over 1500km
+EU261,delay,3500,,3,,600,EUR,true,2005-02-17,Can be halved if rerouted and arrival delay is 3-4h on long haul
+UK261,delay,0,1500,3,,220,GBP,true,2021-01-01,Post-Brexit UK version of EU261 - verify
+UK261,delay,1500,3500,3,,350,GBP,true,2021-01-01,verify
+UK261,delay,3500,,3,,520,GBP,true,2021-01-01,verify
+APPR_LARGE,delay,,,3,6,400,CAD,true,2019-12-15,Canada large carrier; controllable and not safety-related - verify
+APPR_LARGE,delay,,,6,9,700,CAD,true,2019-12-15,verify
+APPR_LARGE,delay,,,9,,1000,CAD,true,2019-12-15,verify
+APPR_SMALL,delay,,,3,6,125,CAD,true,2019-12-15,Canada small carrier - verify
+APPR_SMALL,delay,,,6,9,250,CAD,true,2019-12-15,verify
+APPR_SMALL,delay,,,9,,500,CAD,true,2019-12-15,verify

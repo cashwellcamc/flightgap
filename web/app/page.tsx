@@ -1,242 +1,125 @@
-"use client";
+import Link from "next/link";
 
-import { useState } from "react";
-
-const API = "http://localhost:8000";
-
-interface FlightContext {
-  carrier_flights: number;
-  carrier_cancellations: number;
-  carrier_weather_cancellations: number;
-  origin_weather_cancellations_all_airlines: number;
-  dest_weather_cancellations_all_airlines: number;
-  times_ran_this_route_this_month: number;
-}
-
-interface Leg {
-  carrier: string;
-  flight_number: number;
-  date: string;
-  origin: string;
-  dest: string;
-  sched_dep: number | null;
-  sched_elapsed_min: number | null;
-  tail_number: string | null;
-  cancelled: boolean;
-  cancellation_code: string | null;
-  cancellation_label: string | null;
-  arr_delay_min: number | null;
-  context: FlightContext;
-  flag_isolated_weather: boolean;
-}
-
-interface FlightResult {
-  found: boolean;
-  legs: Leg[];
-}
-
-function fmtTime(t: number | null) {
-  if (t == null) return "—";
-  const h = Math.floor(t / 100).toString().padStart(2, "0");
-  const m = (t % 100).toString().padStart(2, "0");
-  return `${h}:${m}`;
-}
-
-function Row({
-  label,
-  value,
-  dim,
-  highlight,
-}: {
-  label: string;
-  value: string | number;
-  dim?: boolean;
-  highlight?: "red" | "green" | "amber";
-}) {
-  const valueClass =
-    highlight === "red"
-      ? "text-red-400"
-      : highlight === "green"
-      ? "text-emerald-400"
-      : highlight === "amber"
-      ? "text-amber-400"
-      : dim
-      ? "text-zinc-600"
-      : "text-zinc-200";
-
+export default function HomePage() {
   return (
-    <div className="flex justify-between gap-4">
-      <span className="text-zinc-500">{label}</span>
-      <span className={valueClass}>{value}</span>
-    </div>
-  );
-}
+    <div className="space-y-14 py-4">
+      {/* Hero */}
+      <div className="space-y-5 max-w-2xl">
+        <p className="text-xs text-zinc-600 uppercase tracking-widest">Flight reliability from the passenger&apos;s side</p>
+        <h1 className="text-2xl font-semibold tracking-tight leading-snug">
+          Was your flight really on time?<br />
+          Was your cancellation really weather?
+        </h1>
+        <p className="text-zinc-400 text-sm leading-relaxed">
+          Airlines report their own disruption codes to the federal government.
+          Those codes determine whether passengers are owed anything.
+          flightgap pulls that same data and checks the codes against observable facts —
+          then shows you the gap between what you were owed and what you got.
+        </p>
+      </div>
 
-function LegCard({ leg }: { leg: Leg }) {
-  const ctx = leg.context;
-  return (
-    <div className="border border-zinc-800 rounded-lg p-5 space-y-4">
-      {leg.flag_isolated_weather && (
-        <div className="bg-amber-950 border border-amber-700 text-amber-300 rounded px-4 py-3 text-sm">
-          <span className="font-semibold">FLAG:</span> Isolated weather cancellation — no matching disruption elsewhere on this date. Verify airport weather observations.
+      {/* Three tools */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-zinc-800 rounded-lg overflow-hidden">
+        <div className="bg-zinc-950 p-5 space-y-3">
+          <p className="text-xs text-zinc-500 uppercase tracking-wider">Flight check</p>
+          <p className="text-sm text-zinc-300 leading-relaxed">
+            Look up any domestic flight. We check whether the disruption code is consistent
+            with what other airlines reported at the same airports that day.
+          </p>
+          <Link href="/lookup" className="text-xs text-zinc-400 hover:text-zinc-200 underline transition-colors">
+            Check a flight →
+          </Link>
         </div>
-      )}
-
-      <div className="flex items-baseline gap-3 flex-wrap">
-        <span className="text-xl font-semibold">
-          {leg.carrier}{leg.flight_number}
-        </span>
-        <span className="text-zinc-300">{leg.origin} → {leg.dest}</span>
-        <span className="text-zinc-500 text-sm">{leg.date}</span>
-      </div>
-
-      <div className="space-y-1 text-sm">
-        <Row label="Scheduled dep" value={fmtTime(leg.sched_dep)} />
-        <Row label="Scheduled time" value={leg.sched_elapsed_min != null ? `${leg.sched_elapsed_min} min` : "—"} />
-        <Row label="Tail number" value={leg.tail_number ?? "(none assigned)"} dim={!leg.tail_number} />
-        {leg.cancelled ? (
-          <Row
-            label="Status"
-            value={`CANCELLED — ${leg.cancellation_code} (${leg.cancellation_label})`}
-            highlight="red"
-          />
-        ) : (
-          <Row
-            label="Arrival delay"
-            value={leg.arr_delay_min != null ? `${leg.arr_delay_min} min` : "—"}
-            highlight={
-              leg.arr_delay_min != null && leg.arr_delay_min >= 60
-                ? "red"
-                : leg.arr_delay_min != null && leg.arr_delay_min < 0
-                ? "green"
-                : undefined
-            }
-          />
-        )}
-      </div>
-
-      <div className="border-t border-zinc-800 pt-4 space-y-1 text-sm">
-        <p className="text-zinc-600 text-xs uppercase tracking-wider mb-2">Context — {leg.date}</p>
-        <Row label={`${leg.carrier} flights nationwide`} value={ctx.carrier_flights.toLocaleString()} />
-        <Row label={`${leg.carrier} cancellations nationwide`} value={ctx.carrier_cancellations} />
-        <Row
-          label={`${leg.carrier} weather cancellations nationwide`}
-          value={ctx.carrier_weather_cancellations}
-          highlight={ctx.carrier_weather_cancellations <= 1 ? "amber" : undefined}
-        />
-        <Row
-          label={`Weather cancels touching ${leg.origin} (all airlines)`}
-          value={ctx.origin_weather_cancellations_all_airlines}
-          highlight={ctx.origin_weather_cancellations_all_airlines <= 1 ? "amber" : undefined}
-        />
-        <Row
-          label={`Weather cancels touching ${leg.dest} (all airlines)`}
-          value={ctx.dest_weather_cancellations_all_airlines}
-          highlight={ctx.dest_weather_cancellations_all_airlines <= 1 ? "amber" : undefined}
-        />
-        <Row label="Times this route ran this month" value={ctx.times_ran_this_route_this_month} />
-      </div>
-    </div>
-  );
-}
-
-export default function LookupPage() {
-  const [date, setDate] = useState("2024-05-01");
-  const [carrier, setCarrier] = useState("UA");
-  const [flight, setFlight] = useState("1546");
-  const [result, setResult] = useState<FlightResult | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function lookup(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    setResult(null);
-    try {
-      const res = await fetch(
-        `${API}/api/flight?date=${date}&carrier=${carrier.toUpperCase()}&flight=${flight}`
-      );
-      if (!res.ok) throw new Error(`API error ${res.status}`);
-      setResult(await res.json());
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "unknown error");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-lg font-semibold mb-1">Flight lookup</h1>
-        <p className="text-zinc-500 text-sm">Look up a flight and check for suspicious disruption coding.</p>
-      </div>
-
-      <form onSubmit={lookup} className="flex flex-wrap gap-3 items-end">
-        <label className="flex flex-col gap-1 text-xs text-zinc-500">
-          Date
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:border-zinc-500"
-            required
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-xs text-zinc-500">
-          Carrier
-          <input
-            type="text"
-            value={carrier}
-            onChange={(e) => setCarrier(e.target.value.toUpperCase())}
-            placeholder="UA"
-            maxLength={3}
-            className="bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-sm text-zinc-100 w-20 focus:outline-none focus:border-zinc-500 uppercase"
-            required
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-xs text-zinc-500">
-          Flight number
-          <input
-            type="number"
-            value={flight}
-            onChange={(e) => setFlight(e.target.value)}
-            placeholder="1546"
-            className="bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-sm text-zinc-100 w-28 focus:outline-none focus:border-zinc-500"
-            required
-          />
-        </label>
-        <button
-          type="submit"
-          disabled={loading}
-          className="px-5 py-2 bg-zinc-100 text-zinc-900 rounded text-sm font-medium hover:bg-white disabled:opacity-50 transition-colors"
-        >
-          {loading ? "searching…" : "Look up"}
-        </button>
-      </form>
-
-      {error && (
-        <p className="text-red-400 text-sm">Error: {error} — is the API running? <code className="text-zinc-500">uvicorn pipeline.api:app --reload</code></p>
-      )}
-
-      {result && !result.found && (
-        <div className="text-zinc-500 text-sm space-y-1">
-          <p>Not found in federal data.</p>
-          <p className="text-zinc-600">Possible reasons: foreign airline, international flight, operated by a regional partner, or month not downloaded yet.</p>
+        <div className="bg-zinc-950 p-5 space-y-3">
+          <p className="text-xs text-zinc-500 uppercase tracking-wider">Schedule padding</p>
+          <p className="text-sm text-zinc-300 leading-relaxed">
+            Airlines inflate scheduled times so delayed flights still count as &quot;on time.&quot;
+            See how much cushion is built into any route — and whether it&apos;s been growing.
+          </p>
+          <Link href="/padding" className="text-xs text-zinc-400 hover:text-zinc-200 underline transition-colors">
+            Explore padding →
+          </Link>
         </div>
-      )}
-
-      {result?.found && (
-        <div className="space-y-4">
-          {result.legs.length > 1 && (
-            <p className="text-zinc-500 text-sm">{result.legs.length} legs on this date</p>
-          )}
-          {result.legs.map((leg, i) => (
-            <LegCard key={i} leg={leg} />
-          ))}
+        <div className="bg-zinc-950 p-5 space-y-3">
+          <p className="text-xs text-zinc-500 uppercase tracking-wider">Compensation gap</p>
+          <p className="text-sm text-zinc-300 leading-relaxed">
+            Federal data tracks flights, not passengers. These reports show what disrupted
+            passengers were owed, what they received, and what it cost to get it.
+          </p>
+          <Link href="/reports" className="text-xs text-zinc-400 hover:text-zinc-200 underline transition-colors">
+            See real cases →
+          </Link>
         </div>
-      )}
+      </div>
+
+      {/* Case study */}
+      <div className="space-y-5 max-w-2xl">
+        <p className="text-xs text-zinc-600 uppercase tracking-wider">A real example</p>
+        <div className="space-y-4 text-sm text-zinc-400 leading-relaxed">
+          <p>
+            On May 1, 2024, United Airlines cancelled UA1546 from San Diego to Newark at the gate —
+            no advance notice — and reported it as code{" "}
+            <span className="text-zinc-200 font-medium">B: Weather</span>.
+            Two other United flights to Newark were cancelled the same morning, also coded weather.
+          </p>
+          <p>
+            Weather is classified as an extraordinary circumstance. That coding meant United had no
+            obligation under its published customer service commitments: no meal voucher, no hotel,
+            no rebooking on a competitor airline.
+          </p>
+          <p>
+            According to the federal on-time data for that day,{" "}
+            <span className="text-zinc-200 font-medium">
+              no other airline cancelled a flight for weather at San Diego or Newark
+            </span>.
+            All three code-B cancellations were United. All three were bound for the same hub.
+          </p>
+          <p className="text-zinc-600">
+            That does not prove the weather coding was wrong — weather can affect one carrier
+            without grounding others. But it is inconsistent with the observed data, and the
+            passenger received nothing.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-3 pt-1">
+          <Link
+            href="/lookup?date=2024-05-01&carrier=UA&flight=1546"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-zinc-100 text-zinc-900 rounded text-sm font-medium hover:bg-white transition-colors"
+          >
+            Check UA1546 →
+          </Link>
+          <Link
+            href="/reports"
+            className="inline-flex items-center gap-2 px-4 py-2 border border-zinc-700 text-zinc-300 rounded text-sm font-medium hover:border-zinc-500 hover:text-zinc-100 transition-colors"
+          >
+            See the compensation report →
+          </Link>
+        </div>
+      </div>
+
+      {/* Stat row */}
+      <div className="grid grid-cols-3 gap-px bg-zinc-800 rounded-lg overflow-hidden text-sm max-w-2xl">
+        <div className="bg-zinc-950 px-4 py-4 space-y-1">
+          <p className="text-2xl font-semibold text-amber-400">0</p>
+          <p className="text-zinc-600 text-xs">other-airline weather cancels at SAN or EWR, May 1 2024</p>
+        </div>
+        <div className="bg-zinc-950 px-4 py-4 space-y-1">
+          <p className="text-2xl font-semibold text-zinc-100">$0</p>
+          <p className="text-zinc-600 text-xs">compensation received by UA1546 passenger</p>
+        </div>
+        <div className="bg-zinc-950 px-4 py-4 space-y-1">
+          <p className="text-2xl font-semibold text-red-400">46</p>
+          <p className="text-zinc-600 text-xs">days to resolve a separate multi-carrier missed connection</p>
+        </div>
+      </div>
+
+      {/* Data note */}
+      <p className="text-xs text-zinc-700 max-w-2xl leading-relaxed">
+        Source: BTS Reporting Carrier On-Time Performance data (federal, public domain).
+        Covers US domestic and international flights operated by US carriers.
+        BTS data is revised quarterly; counts may differ from earlier exports.
+        Compensation estimates are based on published rules and carrier commitments and should be
+        verified independently before use in a claim.
+      </p>
     </div>
   );
 }
